@@ -431,6 +431,18 @@ st.subheader("Sistema de Priorização de Requisitos de Equipamentos Militares")
 st.caption("Versão web experimental — núcleo matemático portado do MATLAB para Python")
 
 with st.sidebar:
+    st.header("Guia e planilhas de exemplo")
+    examples_dir = ROOT / "exemplos"
+    guide_path = ROOT / "Guia_de_Usuario_SiPREM.pdf"
+    if guide_path.exists():
+        st.download_button("📘 Baixar guia do usuário (PDF)", data=guide_path.read_bytes(), file_name=guide_path.name, mime="application/pdf", use_container_width=True)
+    req_example = examples_dir / "Exemplo_Avaliacoes_Especialistas_SiPREM.xlsx"
+    if req_example.exists():
+        st.download_button("📊 Exemplo: avaliações", data=req_example.read_bytes(), file_name=req_example.name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    fahp_example = examples_dir / "Exemplo_Pesos_FAHP_SiPREM.xlsx"
+    if fahp_example.exists():
+        st.download_button("⚖️ Exemplo: pesos FAHP", data=fahp_example.read_bytes(), file_name=fahp_example.name, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    st.divider()
     st.header("1. Entradas")
     requisitos_file = st.file_uploader("Planilha de avaliações dos especialistas", type=["xlsx"], help="Use a mesma planilha atualmente utilizada pelo SiPREM/MATLAB.")
     fahp_file = st.file_uploader("Planilha FAHP", type=["xlsx"], help="Use a mesma planilha FAHP atualmente utilizada pelo SiPREM/MATLAB.")
