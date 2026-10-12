@@ -22,19 +22,17 @@ SCALE_MAX = np.array([7, 7, 7, 7, 7], dtype=int)
 SCALE_MIN = np.array([1, 1, 1, 1, 1], dtype=int)
 
 
-
-
-TFN_eval_7 = [
-     0   0   1   2
-     1   2   2   3
-     2   3   4   5
-     4   5   5   6
-     5   6   7   8
-     7   8   8   9
-     8   9  10  10
-];
-
-
+# Escala fuzzy trapezoidal de avaliação de 7 níveis (Ghorabaee).
+# Cada linha corresponde aos níveis linguísticos de 1 a 7.
+TFN_EVAL_7 = np.array([
+    [0, 0, 1, 2],
+    [1, 2, 2, 3],
+    [2, 3, 4, 5],
+    [4, 5, 5, 6],
+    [5, 6, 7, 8],
+    [7, 8, 8, 9],
+    [8, 9, 10, 10],
+], dtype=float)
 
 
 def linguistic2num(x):

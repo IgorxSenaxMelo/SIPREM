@@ -32,8 +32,8 @@ def aggregate_fuzzy_flows(phi_plus_fuzzy_exp, phi_minus_fuzzy_exp, phi_net_fuzzy
 
 
 def _thresholds():
-q_vals = [0, 0.6, 0.6, 0.6, 0.6]
-p_vals = [0, 1.9, 1.9, 1.9, 1.9]
+    q_vals = [0, 0.6, 0.6, 0.6, 0.6]
+    p_vals = [0, 1.9, 1.9, 1.9, 1.9]
     return q_vals, p_vals
 
 
