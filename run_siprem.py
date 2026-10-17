@@ -1,43 +1,56 @@
+"""Executa o SiPREM pela linha de comando (sem interface web).
+
+Uso:
+    python run_siprem.py avaliacoes.xlsx pesos_fahp.xlsx [saida.xlsx]
+
+Sem argumentos, usa as planilhas de exemplo da pasta exemplos/.
+"""
 from pathlib import Path
 import sys
-import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from core.data_loader import read_expert_workbook, read_fahp_workbook
+from core.data_loader import (
+    InputValidationError, align_fahp_to_data, read_expert_workbook, read_fahp_workbook,
+)
 from core.siprem_core import run_siprem
+from core.analysis import build_ranking_table
+from core.export import build_excel
 
-DATA = ROOT / "data" / "dados_requisitos_lista.xlsx"
-FAHP = ROOT / "data" / "F_AHP_A.xlsx"
 
-data = read_expert_workbook(DATA)
-fahp = read_fahp_workbook(FAHP)
-result = run_siprem(data["evaluations"], fahp["w_fuzzy_individual"], random_state=0)
+def main(argv):
+    ex = ROOT / "exemplos"
+    req = Path(argv[1]) if len(argv) > 1 else ex / "Exemplo_Avaliacoes_Especialistas_SiPREM.xlsx"
+    fahp_path = Path(argv[2]) if len(argv) > 2 else ex / "Exemplo_Pesos_FAHP_SiPREM.xlsx"
+    out = Path(argv[3]) if len(argv) > 3 else ROOT / "output" / "Resultado_SiPREM.xlsx"
 
-df = pd.DataFrame({
-    "Rank": result["rank_siprem"].astype(int),
-    "Requisito": data["ids"],
-    "Phi_Plus": result["phi_plus"],
-    "Phi_Minus": result["phi_minus"],
-    "Phi_Liquido": result["phi_net"],
-    "Categoria": result["categories"],
-    "Alerta_Divergencia_Impacto": (
-        result["impact_matrix"].max(axis=1) -
-        result["impact_matrix"].min(axis=1) >= 3
-    ),
-}).sort_values("Rank")
+    try:
+        data = read_expert_workbook(req)
+        fahp, warnings = align_fahp_to_data(data, read_fahp_workbook(fahp_path))
+    except InputValidationError as exc:
+        print("Problemas encontrados nas planilhas:")
+        for m in exc.messages:
+            print(" -", m)
+        return 1
 
-out = ROOT / "output"
-out.mkdir(exist_ok=True)
-df.to_excel(out / "Resultado_SIPREM_Python.xlsx", index=False)
+    for w in warnings:
+        print("AVISO:", w)
 
-print("=== SiPREM Python ===")
-print(f"Especialistas: {data['n_experts']}")
-print(f"Requisitos:    {data['n_requirements']}")
-print(f"Critérios:     {data['n_criteria']}")
-print()
-print(df.head(10).to_string(index=False))
-print()
-print("Arquivo gerado:")
-print(out / "Resultado_SIPREM_Python.xlsx")
+    result = run_siprem(data["evaluations"], fahp["w_fuzzy_individual"], random_state=0)
+    table = build_ranking_table(data, result)
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(build_excel(data, result, fahp))
+
+    print("=== SiPREM Python ===")
+    print(f"Especialistas: {data['n_experts']} ({', '.join(data['sheets'])})")
+    print(f"Requisitos:    {data['n_requirements']}")
+    print()
+    print(table.head(10)[["Rank", "Requisito", "Categoria", "Phi_Liquido", "Classe_incerta"]].to_string(index=False))
+    print(f"\nArquivo gerado: {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

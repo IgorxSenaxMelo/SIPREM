@@ -1,77 +1,65 @@
-# SiPREM — conversão MATLAB → Python
+# SiPREM — Sistema de Priorização de Requisitos de Equipamentos Militares
 
-Esta é a **Fase C** do projeto: conversão do núcleo matemático.
-A interface Streamlit ainda não é o foco desta etapa.
+FAHP-Express + Fuzzy PROMETHEE, portado do MATLAB para Python, com interface web (Streamlit).
+
+## O que o sistema entrega
+
+- **Ranking** dos requisitos com classe (Key, Grupo 1, 2, 3), Φ líquido, **classe incerta** (requisito perto da fronteira entre classes) e **divergência de impacto** entre especialistas.
+- **Busca e filtros** por texto, classe, incerteza e divergência.
+- **Explicação por requisito**: contribuição de cada critério e visão de cada especialista.
+- **Gráficos paginados** (padrão: 40 requisitos por página, em ordem de ranking): posições, classificações e matriz do PROMETHEE I; mais pesos FAHP e GAIA.
+- **Aderência dos especialistas** ao grupo: Spearman, histogramas de diferença de posição/classe, Kappa.
+- **Exportações**: Excel completo (11 abas), relatório HTML e CSV do ranking filtrado.
+- **Validação das planilhas** com mensagens que indicam aba, linha e coluna.
+
+## Como usar
+
+1. Instale o Python 3.11 ou 3.12 (marque "Add Python to PATH" no Windows).
+2. Execute `executar_siprem_web.bat` (Windows) ou `./executar_siprem_web.sh` (Linux/macOS). Na primeira vez ele cria o ambiente e instala as dependências.
+3. Na barra lateral, envie as duas planilhas (ou marque **Usar planilhas de exemplo**) e clique em **Executar SiPREM**.
+
+Alternativa por linha de comando: `python run_siprem.py avaliacoes.xlsx pesos_fahp.xlsx saida.xlsx`.
+
+Com Docker: `docker build -t siprem .` e `docker run -p 8501:8501 siprem`.
+
+## Formato das planilhas
+
+- **Avaliações**: uma aba por especialista, nomeada `E1, E2, …` ou `Especialista 1, 2, …`. Colunas: ID, descrição e os 5 critérios (Impacto, Custo, Capacidade nacional, Prazo, Risco de verificação) em níveis linguísticos de "Muito baixo" a "Muito alto". Todas as abas devem ter os mesmos IDs, na mesma ordem. Outras abas (`DADOS`, `LEIA-ME`) são ignoradas.
+- **FAHP**: mesmas abas de especialistas; a linha 4 (B4:F4) traz os julgamentos de referência na escala de Saaty (texto). Os dois arquivos precisam ter os mesmos especialistas; se os nomes diferirem, o sistema avisa e associa por posição.
+
+Veja `exemplos/` e o `Guia_de_Usuario_SiPREM.pdf`.
+
+## Parâmetros avançados
+
+Limiares q e p dos critérios com função Level, limite de divergência de impacto e semente do K-means. Os padrões reproduzem o MATLAB.
 
 ## Estrutura
 
 ```text
-C:\SIPREM
-├── core\
-│   ├── data_loader.py
-│   ├── fahp.py
-│   ├── fuzzy_numbers.py
-│   ├── promethee.py
-│   └── siprem_core.py
-├── tests\
-│   ├── test_core.py
-│   └── validate_matlab_vs_python.py
-├── data\
-│   ├── dados_requisitos_lista.xlsx
-│   └── F_AHP_A.xlsx
-├── requirements.txt
-└── README.md
+app.py              interface Streamlit
+plots.py            figuras Plotly (paginadas)
+run_siprem.py       execução por linha de comando
+core/
+  data_loader.py    leitura e validação das planilhas
+  fahp.py           FAHP trapezoidal + Buckley
+  promethee.py      Fuzzy PROMETHEE (vetorizado; versão de referência mantida para testes)
+  siprem_core.py    pipeline principal
+  classification.py Key por maioria + K-means
+  analysis.py       aderência, contribuição por critério, incerteza de classe, paginação
+  export.py         Excel completo e relatório HTML
+tests/              pytest
 ```
 
-## Instalação
-
-No PowerShell, dentro de `C:\SIPREM`:
-
-```bash
-python -m venv .venv
-```
-
-Ative:
-
-```bash
-.venv\Scripts\Activate.ps1
-```
-
-Instale:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Teste do núcleo
+## Testes
 
 ```bash
 pytest
 ```
 
-## Próximo teste
+Os testes geram planilhas sintéticas e comparam a versão vetorizada do PROMETHEE com a implementação original.
 
-Copie os dois Excel reais para `C:\SIPREM\data` usando os nomes:
+## Notas de interpretação
 
-```text
-dados_requisitos_lista.xlsx
-F_AHP_A.xlsx
-```
-
-Depois:
-
-```bash
-python tests\validate_matlab_vs_python.py
-```
-
-Para validar numericamente contra o MATLAB, também será necessário colocar em `data` o Excel de referência exportado pelo MATLAB:
-
-```text
-Resultado_SIPREM_FAHP_FuzzyPromethee_Geldermann.xlsx
-```
-
-com a aba `Consolidado`.
-
-## Observação científica
-
-Nenhuma simplificação metodológica foi introduzida deliberadamente nesta fase. As operações fuzzy e as regras principais foram portadas conforme as funções MATLAB analisadas.
+- **Contribuição por critério** = peso defuzzificado × fluxo líquido unicritério. É uma aproximação para leitura; o Φ do SiPREM usa pesos fuzzy por especialista.
+- **Classe incerta**: distância do Φ líquido até a fronteira entre grupos (ponto médio entre centroides do K-means) menor que a fração escolhida da distância entre os centroides. Requisitos Key não têm margem, pois são definidos por maioria de impacto máximo.
+- O fluxo unicritério do GAIA agora usa a subtração fuzzy trapezoidal, como no MATLAB.
